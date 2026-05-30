@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: sans-serif;
+      color: #eee;
+    }
+    video {
+      width: 100%;
+      max-width: 800px;
+      border-radius: 6px;
+      background: #000;
+    }
+    #msg {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #aaa;
+    }
+    #erro {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #f66;
+    }
+    select {
+      margin-top: 16px;
+      padding: 6px 10px;
+      background: #222;
+      color: #eee;
+      border: 1px solid #444;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" autoplay playsinline muted></video>
+  <select id="cameras" style="display:none"></select>
+  <p id="msg">Aguardando permissao de camera...</p>
+  <p id="erro"></p>
+
+  <script>
+    const video = document.getElementById('video');
+    const msg   = document.getElementById('msg');
+    const erro  = document.getElementById('erro');
+    const sel   = document.getElementById('cameras');
+    let stream  = null;
+
+    async function listarCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(d => d.kind === 'videoinput');
+      if (cameras.length > 1) {
+        sel.style.display = 'block';
+        sel.innerHTML = cameras
+          .map((c, i) => `<option value="${c.deviceId}">${c.label || 'Camera ' + (i + 1)}</option>`)
+          .join('');
+        sel.addEventListener('change', () => iniciar(sel.value));
+      }
+    }
+
+    async function iniciar(deviceId) {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      const constraints = {
+        video: deviceId ? { deviceId: { exact: deviceId } } : true,
+        audio: false
+      };
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = stream;
+      msg.textContent = '';
+    }
+
+    (async () => {
+      try {
+        await iniciar(null);
+        await listarCameras();
+      } catch (e) {
+        msg.textContent = '';
+        erro.textContent = 'Erro: ' + (e.message || e.name);
+      }
+    })();
+  </script>
+</body>
+</html>
